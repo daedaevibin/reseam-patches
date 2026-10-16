@@ -1,0 +1,25 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="section_playback">Playback</string>
+    <string name="section_ads">Ads</string>
+    <string name="section_quality">Audio quality</string>
+    <string name="section_display">Display</string>
+
+    <string name="unlimited_skips">Unlimited skips</string>
+    <string name="unlimited_skips_summary">Skip forward and back without limits, and swipe freely in the player.</string>
+
+    <string name="remove_ads">Remove ads</string>
+    <string name="remove_ads_summary">Stops audio ads from being loaded.</string>
+
+    <string name="force_quality">Force audio quality</string>
+    <string name="force_quality_summary">Sets the streaming-quality tier the client asks for. The bitrate you actually get still depends on your plan and connection.</string>
+    <string name="quality_tier">Quality tier</string>
+    <string name="quality_tier_summary">The tier requested when forcing is on.</string>
+    <string name="quality_normal">Normal</string>
+    <string name="quality_high">High</string>
+    <string name="quality_very_high">Very high</string>
+    <string name="quality_hifi">HiFi</string>
+    <string name="quality_hifi24">HiFi 24-bit</string>
+
+    <string name="disable_canvas">Disable Canvas</string>
+    <string name="disable_canvas_summary">Stops Canvas video loops from loading in the now-playing view, saving data and battery.</string>
+</resources>

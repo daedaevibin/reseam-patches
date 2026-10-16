@@ -2,16 +2,18 @@
   <img src="https://reseam.app/logo.svg" alt="Reseam logo" width="96">
 </p>
 
-<h1 align="center">Reseam patch bundle template</h1>
+<h1 align="center">Spotify patches for Reseam</h1>
 
-Start here to write your own patches for [Reseam](https://reseam.app). Copy this repository, rename a few things, and you have a bundle that builds, signs itself, and publishes releases Reseam Manager can install.
+An original [Reseam](https://reseam.app) patch bundle for the Spotify Android app: unlimited skips, ad removal, forced audio quality, and a settings screen inside Spotify's own settings.
 
-It ships two example patches that work on any app:
+It ships four patches, each with its own in-app toggle:
 
-- `Enable debugging` edits the manifest.
-- `Allow screenshots` redirects calls into Kotlin code shipped in the bundle (an extension).
+- `Unlimited skips` removes skip, swipe, and peek restrictions.
+- `Remove ads` keeps ad metadata from being created when a session loads.
+- `Force audio quality` forces the streaming-quality tier the client reads and reports, up to HiFi 24-bit.
+- `Disable Canvas` stops Canvas video loops from loading in the now-playing view.
 
-The [docs](https://reseam.app/docs/authoring/start/) walk through this template step by step.
+The [docs](https://reseam.app/docs/authoring/start/) explain how bundles are built.
 
 ## Setup
 
@@ -20,13 +22,7 @@ The [docs](https://reseam.app/docs/authoring/start/) walk through this template 
 - The `reseam` CLI, on `PATH` or at the path in `RESEAM_BIN`. Use the version that matches the plugin version in `settings.gradle.kts`. Releases ship Linux x64 and Windows x64 binaries; on other platforms [build it from source](https://reseam.app/docs/cli/install/).
 - A signing key: `reseam bundle keygen --out ~/.reseam/bundle-signing.key`. It prints the public key users will trust. Keep the key file private and out of the repository.
 
-## Make it yours
-
-1. Set `name`, `author`, and `description` in `manifest.toml`, and `rootProject.name` in `settings.gradle.kts`.
-2. Rename `apps/example` to the app you patch and change the `app.example` packages to your own.
-3. Replace the example patches with your own.
-
-Layout:
+## Layout
 
 ```text
 manifest.toml                     bundle name, author, description
@@ -43,11 +39,11 @@ Modules need no build script. The `app.reseam.workspace` plugin configures them 
 
 ```shell
 ./gradlew bundle
-reseam bundle list build/reseam/example-patches.reseam
+reseam bundle list build/reseam/spotify-patches.reseam
 reseam patch app.apk \
-  --bundle build/reseam/example-patches.reseam \
+  --bundle build/reseam/spotify-patches.reseam \
   --trust <public key> \
-  --enable "Enable debugging" \
+  --enable "Unlimited skips" \
   --output patched.apk
 ```
 

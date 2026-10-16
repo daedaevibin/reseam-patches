@@ -15,4 +15,4 @@ plugins {
     id("app.reseam.workspace") version "0.25.0"
 }
 
-rootProject.name = "example-patches"
+rootProject.name = "Spotify patches"

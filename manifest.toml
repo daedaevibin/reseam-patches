@@ -1,5 +1,5 @@
 [bundle]
-name = "example-patches"
-author = "Your Name"
-description = "Example patches for Reseam"
+name = "spotify-patches"
+author = "kmmiio99o"
+description = "Original patches for Spotify: unlimited skips, ad removal, precise audio quality, Canvas off, and in-app settings."
 format_version = 1
