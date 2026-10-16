@@ -8,10 +8,10 @@ marks something UNVERIFIED or you need an API not listed here.
 ## 1. Repo identity & layout
 
 - Bundle: `spotify-patches` (`manifest.toml`: name / author / description / `format_version = 1`).
-- Ships 4 patches + 1 settings host + 1 extension for Spotify Android — package `com.spotify.music`,
+- Ships 6 patches + 1 settings host + 1 extension for Spotify Android — package `com.spotify.music`,
   version `com.spotify.music_9.1.90.2270-147078674_mi`.
 - **User-mandated namespace: everything under `dev.kmiio99o.spotify.*`**
-  - patches → `dev.kmiio99o.spotify.patches`
+  - patches → `dev.kmiio99o.spotify.patches.*` (subpackages per group, see layout)
   - settings → `dev.kmiio99o.spotify.settings`
   - extension → `dev.kmiio99o.spotify.extentions` — **this spelling ("extentions") is intentional per user; do not "fix" it.**
 - No `app.spotify.*` references may remain (last verified: zero).
@@ -21,12 +21,15 @@ manifest.toml                                   bundle metadata
 settings.gradle.kts                             rootProject.name = "Spotify patches"; app.reseam.workspace plugin v0.25.0
 README.md                                       user-facing (patch list, build, release)
 apps/spotify/patch/src/main/kotlin/dev/kmiio99o/spotify/patches/
-    Spotify.kt                                  const val SPOTIFY = "com.spotify.music"
-    SettingsHost.kt                             settings host + entry hook
-    UnlimitedSkipsPatch.kt                      6 restriction getters → empty set
-    RemoveAdsPatch.kt                           ad-track factory → null
-    PreciseAudioQualityPatch.kt                 3 registry getters + serializer field writes
-    DisableCanvasPatch.kt                       cw5 canvas flag → false
+    core/App.kt                                 val SPOTIFY = CompatiblePackage("com.spotify.music", listOf("9.1.90.2270"))
+    core/Pages.kt                               patchesPage + cleanupPage (SettingsPage, shared by all patches)
+    host/SettingsHost.kt                        settings host + entry hooks (navigation redirect + row rename)
+    playback/UnlimitedSkipsPatch.kt             6 restriction getters → empty set
+    ads/RemoveAdsPatch.kt                       ad-track factory → null
+    quality/PreciseAudioQualityPatch.kt         3 registry getters + serializer field writes
+    premium/PremiumSpoofPatch.kt                product-state predicates N/G/S → premium/free/off/false
+    ui/DisableCanvasPatch.kt                    cw5 canvas flag → false
+    ui/HideCreateButtonPatch.kt                 prefs read of create_button_enabled → false
 apps/spotify/settings/
     build.gradle.kts                            reseamStrings { objectName = "dev.kmiio99o.spotify.settings.SpotifyStrings" }
     src/main/kotlin/dev/kmiio99o/spotify/settings/SpotifySettings.kt
@@ -34,6 +37,9 @@ apps/spotify/settings/
 apps/spotify/extensions/quality/src/main/kotlin/dev/kmiio99o/spotify/extentions/Quality.kt
 spotify-apk/                                    decompiled APK sources (gitignored: `*-apk/`)
 ```
+
+**Patch IDs changed in the v2 reorg** (subfolders = subpackages, e.g. `dev.kmiio99o.spotify.patches.playback.unlimitedSkips`).
+Renaming files/packages again would reset users' settings/enablement — get user consent first.
 
 ## 2. Build rules (from template + git history — verified)
 
@@ -52,8 +58,10 @@ spotify-apk/                                    decompiled APK sources (gitignor
 
 ## 3. Toolchain available in THIS environment
 
-- **No Android SDK, no `reseam` CLI, no `ANDROID_HOME` → cannot compile/patch here.**
-  Substitute verification = javap + grep (see §7).
+- JDK 17, Android toolchain via Gradle, and network all work → **`./gradlew bundle` runs here**
+  (prefix: `RESEAM_BUNDLE_KEY=$HOME/.reseam/bundle-signing.key ./gradlew bundle`).
+- `reseam` CLI v0.25.0 lives at `/tmp/opencode/engine/reseam` (re-download if tmp wiped:
+  `https://cdn.reseam.app/engine/v0.25.0/reseam-linux-x64`, `chmod +x`).
 - SDK jar (re-extract if `/tmp/opencode/sdk` is gone):
 
 ```bash
@@ -73,10 +81,12 @@ engine/reseam patch spotify.apk --bundle spotify-patches.reseam \
 # drop --dry-run for a real signed output APK
 ```
 
-- Result (2026-10-16): 4/4 patches + settings host applied, 0 failed; output zip-clean with injected
-  `dev/kmiio99o/spotify/extentions/Quality` + `settings/SpotifySettings` classes. Runtime behavior
-  still needs a device (patched APK is re-signed → sideload requires uninstalling the store build,
-  or use the Manager's `--mount` flow).
+- Result (2026-10-16, after v2 reorg): **6/6 patches + settings host applied, 0 failed**, dry-run AND
+  real signed run both pass (`--preset all`). Output zip-clean: 17→22 dexes; injected classes land in
+  `classes21.dex` (`dev/kmiio99o/spotify/settings/SpotifySettings` + `SpotifyStrings`) and
+  `classes22.dex` (`dev/kmiio99o/spotify/extentions/Quality`); `classes10/11.dex` gained one
+  `kmiio99o` reference each (host bootstrap refs). Runtime behavior still needs a device (patched
+  APK is re-signed → sideload requires uninstalling the store build, or use the Manager `--mount` flow).
 - **Public key of the release signer** (from `bundle list`; share this, keep the private key safe):
   `b403855071d0fb1f18505ac980e040b0b30b3876a8b2d7f8d08798d5de5b2f55`
 
@@ -88,7 +98,7 @@ Every patch uses exactly this shape. Imports listed are the ones actually used.
 val myPatch = patch("Patch name") {                       // app.reseam.patch.patch
     description("What it does.")
     compatibleWith(SPOTIFY)
-    settings(spotifySettings, section(SpotifyStrings.sectionX, SpotifySettings.someToggle))
+    settings(spotifySettings, section(patchesPage, SpotifyStrings.sectionX, SpotifySettings.someToggle))
     execute {
         gate(SpotifySettings.someToggle) {                // app.reseam.patch.settings.gate
             someTarget.before { returnValue(...) }        // receiver style = GateScope member (works inside gate)
@@ -101,18 +111,22 @@ val myPatch = patch("Patch name") {                       // app.reseam.patch.pa
 val spotifySettings = settingsHost("spotify") {           // app.reseam.patch.settings.settingsHost
     compatibleWith(SPOTIFY)
     install {
-        settingsPageCreate.after { openSettings() }       // top-level exts: app.reseam.patch.after,
+        settingsRowHook.before { openSettings() }         // top-level exts: app.reseam.patch.before,
     }                                                     // app.reseam.patch.settings.openSettings
 }
 ```
 
+- **Pages**: `SettingsPage("id", SpotifyStrings.pageX, order = n, summary = SpotifyStrings.pageXSummary)`
+  — declared as top-level vals in `core/Pages.kt`; pass page as first arg of `section(...)`.
+  Sections with same page+title merge; pages without running-patch settings are omitted.
 - **Discovery**: bundle discovery scans **top-level `public val`s of type `ReseamPatch`** (and hosts).
-  Patches/hosts must be top-level public vals. Package name is irrelevant to discovery.
+  Patches/hosts must be top-level public vals. Package name is irrelevant to discovery (but IS woven
+  into the patch ID).
 - No `brand()`; hosts have no `description()`.
-- **Receiver vs top-level**: inside `gate {}`/`settingsHost {}`/`install {}` (receiver scope),
+- **Receiver vs top-level**: inside `gate {}` (receiver scope)
   `target.before { }` / `.after { }` / `.alwaysReturnNull()` resolve to the scope's **member** extensions —
-  do NOT import `HooksKt`-style top-level extensions for those. Outside a receiver scope, import
-  top-level extensions (`app.reseam.patch.after`, etc.).
+  do NOT import `HooksKt`-style top-level extensions there. Inside `install {}`, top-level extensions
+  imported from `app.reseam.patch` work (build-verified both ways).
 - Settings registration order = order shown to the user; one `section(...)` per patch.
 
 ### Settings group
@@ -228,12 +242,57 @@ dupes, anchor by exact class name and accept the lock (loud failure is the featu
   (`Lp/cw5;` exact descriptor ≠ `Lp/cw50;`). Other cw5 getters are internal flags only reachable
   after activation — leave alone.
 
-### Settings entry ✅
-- Factory `p/j4k.create()` (0-arg), uniquely AND-anchored by
-  `klass("settingsPage") { strings("parentDetails","inviteParent","storageLocation","cacheLimit") }`
-  (cacheLimit alone also matches rvr; AND → unique).
-- Hook in host: `.after { openSettings() }` → ReSeam overlay appears when Spotify builds its
-  settings pages. **v1 caveat**: overlay, dismissible — not a native subpage.
+### Patch 5 — Premium spoof ✅
+- `p/n9k1` (abstract, static utility `bxh1`) = THE product-state predicate class. Every free/premium
+  UI decision funnels through its static `(Map) → boolean` methods (grep-proven callers: a000, ae00,
+  n550, tw00, cbu0, aq0...).
+  - `F(map)` = `l("allow-child-video", true)` · `G(map)` = `catalogue == "free"` (isFree)
+  - `H(map)` = `horizon == "FULL"` · `I(map)` = pick-and-shuffle ✅ · `J/K/L` = mobile-only-tier /
+    music-video-disabled / nft-disabled · `N(map)` = `"premium".equals(type)` (isPremium)
+  - `P(str)` = null→true else hash-check of streaming-rules string (`d340.a.M(str).b() == 1929113152`)
+  - `S(map)` = `!P(map.get("streaming-rules"))` (on-demand allowed)
+- Class anchor: `klass("productPredicates") { strings("allow-child-video","is-mobile-only-tier",
+  "music-video-disabled","nft-disabled","has-audiobooks-available") }` — each string appears in ≤2
+  classes but only n9k1 has all five (AND across methods → unique).
+- Method anchors (within class, grep-proven unique): N = `strings("premium","type")` — "premium" ×1
+  in class; G = `strings("catalogue","free")`; S = `strings("streaming-rules")`. All
+  `flags(STATIC); paramCount(1); returns(Type.Boolean)`.
+- Hook: N → `returnTrue()`, S → `returnTrue()`, G → `returnFalse()`.
+- **Honest scope**: client-side only (server enforces real entitlements; downloads may fail).
+  Product-state map itself (proto `EsSession$ProductStateMap` → `u7y/gos0`) NOT touched.
+
+### Patch 6 — Hide Create button ✅
+- Stock toggle exists in Spotify settings (`lp.java:173` row `createButton` → `jg91(14)`) but user
+  wants it in our bundle.
+- Storage: `r9m` — `dz61.c = dz61.b.l("create_button_enabled")` static key;
+  `r9m.b` = `fz61.h(key, true)` observable. `fz61` = typed-prefs interface, `kz61` = **only impl**.
+  Anchor: `klass("prefsStore") { strings("key ", " has no value") }` — both literals in kz61 only
+  (grep-proven ≤kz61 for ` has no value`).
+- Target: `method("h") { paramCount(2); returns(Type.Boolean) }` (getBoolean(key, def));
+  `param(0)` = key instance → `param(0).field(field("Lp/dz61;","a","Ljava/lang/String;"))`
+  compared to `"create_button_enabled"` → `returnFalse()`. All boolean prefs reads hit one
+  whenEqual — cheap. Stock settings toggle then reads off (consistent UI).
+
+### Settings entry ✅ (v2 — replaced j4k.create() overlay)
+- v1 (removed): `j4k.create().after { openSettings() }` — j4k is a merged multi-section factory;
+  `lp.java` (main settings page builder) calls some `ka31.create()` **eagerly for section icons**,
+  so the overlay popped as soon as Spotify's settings opened = "injected into the settings button".
+- v2 (shipped): two host hooks:
+  1. `method("navigateToUri") { strings("navigateToUriWithNullableUbiInstrumentation"); paramCount(4) }`
+     — `pgk1.m` is THE spotify-URI navigation funnel (`ejl0.h(str)` etc.); string is its stack-trace
+     filter constant, grep-unique. `.before { whenEqual(param(1), string("spotify:internal:licenses"))
+     { openSettings(); returnVoid() } }` — tapping the **Licenses** row opens our settings INSTEAD
+     of the licenses page (param(0) = the `dz61` key of row's URI? no — param(1) = URI string;
+     sig `(ejl0, String, fbv, Bundle)`).
+  2. Row relabel: `klass("Lp/w731;").method("a") { paramCount(1); returns(String) }` — w731.a(we20)
+     resolves a settings row's title via `zjk1.s(fr71.c, fr71.d, we20)`. `.before`: walk
+     `thisObject.a.b` (`field("Lp/w731;","a","Lp/u731;")` → `field("Lp/u731;","b","Lp/fr71;")` →
+     `field("Lp/fr71;","a","Ljava/lang/String;")`), whenEqual to `"licenses"` →
+     `returnValue(string("ReSeam patches"))`. Res ID `2131961449` used ONLY by the licenses row
+     (grep-proven) — no collateral renames.
+- Result: About settings has a row labeled "ReSeam patches"; tapping it opens the bundle settings
+  (overlay, not native subpage). Nothing else hijacked; licenses page unreachable (acceptable,
+  documented in README).
 
 ### Recurring grep probes (cheap re-verification)
 
@@ -243,6 +302,8 @@ grep -rn "ad_playback_id" .            # ads anchor uniqueness
 grep -rn "streamNonMeteredQuality()I" . # hq01 uniqueness
 grep -rn "com.spotify.settings.rxsettings.SettingsState" .  # ad31 uniqueness
 grep -rn "canvas_enabled" .            # canvas flags
+grep -rn "create_button_enabled" .     # create button pref key
+grep -rn "spotify:internal:licenses" . # entry row URI + route table
 diff <(sed 's/wqp/CCLS/g' p/wqp.java) <(sed 's/iq01/CCLS/g' p/iq01.java)  # dupe check
 ```
 
@@ -275,9 +336,9 @@ diff <(sed 's/wqp/CCLS/g' p/wqp.java) <(sed 's/iq01/CCLS/g' p/iq01.java)  # dupe
 - Toggle defaults: behavioral patches default `true` (installed = active); `forceQuality` is `false`
   because it has a dependent choice.
 - strings.xml: Android-escaped, no raw apostrophes; keys exactly `snake_case` of the settings
-  property + `_summary`, plus `section_*`.
-- Keep settings copy honest (e.g. quality summary states bitrate still depends on plan/connection).
-- README patch list and `manifest.toml` description must stay in sync with actual patches (4 now).
+  property + `_summary`, plus `section_*` and `page_*`.
+- Keep settings copy honest (e.g. quality + premium summaries state server still enforces).
+- README patch list and `manifest.toml` description must stay in sync with actual patches (6 now).
 
 ## 10. Docs map (fetch only if something is missing above)
 
@@ -289,9 +350,12 @@ diff <(sed 's/wqp/CCLS/g' p/wqp.java) <(sed 's/iq01/CCLS/g' p/iq01.java)  # dupe
 
 ## Open items
 
-- No compile yet — run `./gradlew bundle` wherever JDK17 + Android SDK + reseam CLI exist.
-- Unverified assumption (doc-stated): inside `apps/*`, patch modules automatically see the settings
-  module without an explicit dependency. If the build says otherwise, add the workspace-documented
-  wiring — not a hand-written build script unless docs say so.
-- Serialize hook writes `public final int` fields via `ValueRef.set` — no rejection in SDK, but only
-  a real patch run proves it. Fallback if it errors: drop Layer 2, keep getter hooks.
+- Build + patch test pass (build 2026-10-16, applied=6 failed=0). Device behavior still unverified:
+  premium-spoof side effects (server interactions with spoofed entitlements), entry-row visibility,
+  Create-button hiding, licenses-row rename. Test on device before publishing an announcement.
+- Serialize hook writes `public final int` fields via `ValueRef.set` — no rejection in SDK, and the
+  real patch run passed; runtime write is still only proven once used on a device.
+- w731 title hook walks 3 fields (`a→b→a`) — if a future update changes row nesting, query still
+  matches but field walk could NPE at runtime; loud-fail at patch time is NOT guaranteed here.
+  (Mitigation: version pin catches most drift.)
+- Manager-side: settings/enablement reset for existing users (IDs changed in v2 reorg).
