@@ -45,6 +45,12 @@ jobs:
           curl -fsSL -o engine/reseam https://cdn.reseam.app/engine/v$version/reseam-linux-x64
           chmod +x engine/reseam
           echo "${{ secrets.BUNDLE_SIGNING_KEY_B64 }}" | base64 -d > bundle-signing.key
+          size=$(wc -c < bundle-signing.key)
+          if [ "$size" -ne 32 ]; then
+            echo "BUNDLE_SIGNING_KEY_B64 must decode to a 32-byte key, got $size bytes." >&2
+            echo "Set it with: base64 -w0 ~/.reseam/bundle-signing.key | gh secret set BUNDLE_SIGNING_KEY_B64 -R <owner>/<repo>" >&2
+            exit 1
+          fi
 
       # The build adds this release to the latest index, so a clean checkout keeps the release history.
       - name: Download the latest release index
