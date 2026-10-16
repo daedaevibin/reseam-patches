@@ -63,6 +63,22 @@ javap -cp . app.reseam.patch.CodeScope        # any SDK class
 ```
 
 - APK sources: `spotify-apk/sources/sources` (jadx output; obfuscated classes in `p/`).
+- Original APK for local tests: `spotify-apk/spotify.apk` (identical to the apkmirror file; 9.1.90, 17 dex).
+- **Local patch test (verified working)** — bundle from `gh release download v0.0.1 -p spotify-patches.reseam`:
+
+```bash
+engine/reseam bundle list spotify-patches.reseam   # prints signer public-key hex = --trust value
+engine/reseam patch spotify.apk --bundle spotify-patches.reseam \
+  --trust <signer hex> --preset all --dry-run --output /tmp/out.apk   # validate only
+# drop --dry-run for a real signed output APK
+```
+
+- Result (2026-10-16): 4/4 patches + settings host applied, 0 failed; output zip-clean with injected
+  `dev/kmiio99o/spotify/extentions/Quality` + `settings/SpotifySettings` classes. Runtime behavior
+  still needs a device (patched APK is re-signed → sideload requires uninstalling the store build,
+  or use the Manager's `--mount` flow).
+- **Public key of the release signer** (from `bundle list`; share this, keep the private key safe):
+  `b403855071d0fb1f18505ac980e040b0b30b3876a8b2d7f8d08798d5de5b2f55`
 
 ## 4. Canonical authoring shapes (docs-verified)
 
