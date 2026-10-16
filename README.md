@@ -49,10 +49,10 @@ reseam patch app.apk \
 
 ## Release
 
-The workflow in `.github/workflows/release.yml` runs on `v*` tags. It builds and signs the bundle, adds the release to the `patches.json` of your latest release with the commit subjects since the previous tag as its notes, and attaches both to a GitHub release.
+The workflow in `.github/workflows/release.yml` runs on every push to `main`. It builds and signs the bundle, tags the release `v0.0.<run number>`, adds it to the `patches.json` of your latest release with the commit subjects since the previous release as its notes, and attaches both to a GitHub release.
 
 1. Add the signing key as the repository secret `BUNDLE_SIGNING_KEY_B64`: `base64 -w0 ~/.reseam/bundle-signing.key`.
-2. Push a tag: `git tag v0.1.0 && git push origin v0.1.0`.
+2. Push to `main`: `git push origin main`.
 
 Share your patch source with this link. It opens Reseam Manager, which shows the source's apps, patches and signing key before adding it, and keeps it up to date from your latest release. Every release lists the link too.
 

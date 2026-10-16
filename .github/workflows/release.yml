@@ -2,14 +2,20 @@ name: release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       RESEAM_BIN: ${{ github.workspace }}/engine/reseam
@@ -18,8 +24,9 @@ jobs:
       # Outside build/: Gradle deletes a task's outputs there when the task has no history, as on a fresh checkout.
       RESEAM_PATCHES_JSON_OUT: ${{ github.workspace }}/patches.json
       GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: v0.0.${{ github.run_number }}
     steps:
-      # Full history, so the release notes can list the commits since the previous tag.
+      # Full history, so the release notes can list the commits since the previous release.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -49,7 +56,7 @@ jobs:
             *) echo "latest patches.json returned $status" >&2; exit 1 ;;
           esac
 
-      - name: Write the release notes from the commits since the previous tag
+      - name: Write the release notes from the commits since the previous release
         run: |
           range=$GITHUB_SHA
           if previous=$(git describe --tags --abbrev=0 "$GITHUB_SHA^" 2>/dev/null); then range=$previous..$GITHUB_SHA; fi
@@ -59,11 +66,11 @@ jobs:
       - name: Build and stage the release
         run: |
           name=$(sed -n 's/^name = "\(.*\)"/\1/p' manifest.toml)
-          export RESEAM_BUNDLE_URL="$RESEAM_HOMEPAGE/releases/download/$GITHUB_REF_NAME/$name.reseam"
-          ./gradlew stageRelease -PreleaseTag=$GITHUB_REF_NAME --no-daemon
+          export RESEAM_BUNDLE_URL="$RESEAM_HOMEPAGE/releases/download/$RELEASE_TAG/$name.reseam"
+          ./gradlew stageRelease -PreleaseTag=$RELEASE_TAG --no-daemon
 
       - name: Publish the GitHub release
         run: |
           index=$(jq -rn --arg url "$RESEAM_HOMEPAGE/releases/latest/download/patches.json" '$url | @uri')
-          gh release create "$GITHUB_REF_NAME" build/reseam/release/* --title "$GITHUB_REF_NAME" \
+          gh release create "$RELEASE_TAG" build/reseam/release/* --title "$RELEASE_TAG" \
             --notes "[Add to Reseam Manager](https://reseam.app/add/?url=$index)" --generate-notes
