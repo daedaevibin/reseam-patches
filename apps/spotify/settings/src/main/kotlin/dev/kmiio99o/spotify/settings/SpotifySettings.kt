@@ -8,7 +8,9 @@ import app.reseam.patch.settings.toggle
 object SpotifySettings : SettingsGroup(SpotifyStrings) {
     val unlimitedSkips by toggle(default = true)
     val removeAds by toggle(default = true)
+    val spoofPremium by toggle(default = true)
     val disableCanvas by toggle(default = true)
+    val hideCreateButton by toggle(default = true)
     val forceQuality by toggle(default = false)
     val qualityTier by choice(
         default = "high",

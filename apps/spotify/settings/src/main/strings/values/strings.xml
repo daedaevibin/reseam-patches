@@ -1,14 +1,23 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="page_patches">Patches</string>
+    <string name="page_patches_summary">Changes to the core playback experience.</string>
+    <string name="page_cleanup">Premium &amp; interface</string>
+    <string name="page_cleanup_summary">Premium spoofing and clutter cleanup.</string>
+
     <string name="section_playback">Playback</string>
     <string name="section_ads">Ads</string>
     <string name="section_quality">Audio quality</string>
-    <string name="section_display">Display</string>
+    <string name="section_premium">Premium</string>
+    <string name="section_interface">Interface</string>
 
     <string name="unlimited_skips">Unlimited skips</string>
     <string name="unlimited_skips_summary">Skip forward and back without limits, and swipe freely in the player.</string>
 
     <string name="remove_ads">Remove ads</string>
     <string name="remove_ads_summary">Stops audio ads from being loaded.</string>
+
+    <string name="spoof_premium">Spoof premium</string>
+    <string name="spoof_premium_summary">Hides Premium upsells, nag screens and free-tier gates such as shuffle-only. The server still enforces real entitlements, so downloads and some actions may not work.</string>
 
     <string name="force_quality">Force audio quality</string>
     <string name="force_quality_summary">Sets the streaming-quality tier the client asks for. The bitrate you actually get still depends on your plan and connection.</string>
@@ -22,4 +31,7 @@
 
     <string name="disable_canvas">Disable Canvas</string>
     <string name="disable_canvas_summary">Stops Canvas video loops from loading in the now-playing view, saving data and battery.</string>
+
+    <string name="hide_create_button">Hide Create button</string>
+    <string name="hide_create_button_summary">Removes the Create shortcut button from the Home tab.</string>
 </resources>

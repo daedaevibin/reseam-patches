@@ -4,14 +4,18 @@
 
 <h1 align="center">Spotify patches for Reseam</h1>
 
-An original [Reseam](https://reseam.app) patch bundle for the Spotify Android app: unlimited skips, ad removal, forced audio quality, and a settings screen inside Spotify's own settings.
+An original [Reseam](https://reseam.app) patch bundle for the Spotify Android app: unlimited skips, ad removal, premium spoofing, audio quality forcing, clutter cleanup, and a settings screen reachable from Spotify's own settings.
 
-It ships four patches, each with its own in-app toggle:
+It ships six patches, each with its own in-app toggle, organized into two pages ("Patches" and "Premium & interface"):
 
 - `Unlimited skips` removes skip, swipe, and peek restrictions.
 - `Remove ads` keeps ad metadata from being created when a session loads.
+- `Premium spoof` makes the client treat the account as Premium: hides upsells, nag screens and free-tier gates. The server still enforces real entitlements, so downloads and some premium actions may not work. On by default.
 - `Force audio quality` forces the streaming-quality tier the client reads and reports, up to HiFi 24-bit.
 - `Disable Canvas` stops Canvas video loops from loading in the now-playing view.
+- `Hide Create button` keeps the Create shortcut on the Home tab hidden.
+
+The settings screen opens from the **Licenses** row inside Spotify's About settings: the row is relabeled **ReSeam patches** and tapping it opens the bundle's settings. On by default, toggles are enabled unless noted otherwise (`Force audio quality` starts off because a tier choice depends on it).
 
 The [docs](https://reseam.app/docs/authoring/start/) explain how bundles are built.
 
@@ -57,7 +61,7 @@ The workflow in `.github/workflows/release.yml` runs on every push to `main`. It
 Share your patch source with this link. It opens Reseam Manager, which shows the source's apps, patches and signing key before adding it, and keeps it up to date from your latest release. Every release lists the link too.
 
 ```text
-https://reseam.app/add/?url=https%3A%2F%2Fgithub.com%2F<owner>%2F<repo>%2Freleases%2Flatest%2Fdownload%2Fpatches.json
+https://reseam.app/add/?url=https%3A%2F%2Fgithub.com%2Fkmmiio99o%2Freseam-patches%2Freleases%2Flatest%2Fdownload%2Fpatches.json
 ```
 
 Without Reseam Manager, the link opens a page with the steps to add the source. Publish your public key where users can check it against the one Reseam Manager shows.

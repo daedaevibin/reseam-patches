@@ -1,5 +1,5 @@
 [bundle]
 name = "spotify-patches"
 author = "kmmiio99o"
-description = "Original patches for Spotify: unlimited skips, ad removal, precise audio quality, Canvas off, and in-app settings."
+description = "Original patches for Spotify: unlimited skips, ad removal, audio quality forcing, premium spoofing, Canvas and Create button off, and in-app settings."
 format_version = 1
