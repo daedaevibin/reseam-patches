@@ -73,10 +73,10 @@ jobs:
         run: |
           name=$(sed -n 's/^name = "\(.*\)"/\1/p' manifest.toml)
           export RESEAM_BUNDLE_URL="$RESEAM_HOMEPAGE/releases/download/$RELEASE_TAG/$name.reseam"
-          ./gradlew stageRelease -PreleaseTag=$RELEASE_TAG --no-daemon
+          ./gradlew bundle -PreleaseTag=$RELEASE_TAG --no-daemon
 
       - name: Publish the GitHub release
         run: |
           index=$(jq -rn --arg url "$RESEAM_HOMEPAGE/releases/latest/download/patches.json" '$url | @uri')
-          gh release create "$RELEASE_TAG" build/reseam/release/* --title "$RELEASE_TAG" \
+          gh release create "$RELEASE_TAG" build/reseam/*.reseam --title "$RELEASE_TAG" \
             --notes "[Add to Reseam Manager](https://reseam.app/add/?url=$index)" --generate-notes
