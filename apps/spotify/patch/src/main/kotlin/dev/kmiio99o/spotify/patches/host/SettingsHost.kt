@@ -32,46 +32,12 @@ val spotifySettings = settingsHost("spotify") {
     compatibleWith(SPOTIFY)
 
     install {
-        val titleId = resources.addString("reseam_patches_title", "ReSeam patches")?.toInt() ?: error("addString reseam_patches_title failed")
-        val summaryId = resources.addString("reseam_patches_title_summary", "ReSeam patch bundle settings")?.toInt() ?: error("addString reseam_patches_title_summary failed")
-
         navigateToUri.before {
             whenEqual(param(1), string("spotify:internal:licenses")) {
                 openSettings()
                 returnVoid()
             }
         }
-
-        mainPageFactory.after {
-            val rowsListField = klass(rowsGroupFactory.owner).fieldOfType("Lp/m960;")
-            val groups = this.result.field(groupsField)
-            whenEqual(groups.callInterface("Ljava/util/List;", "size", "()I"), int(3)) {
-                val group = groups
-                    .callInterface("Ljava/util/List;", "get", "(I)Ljava/lang/Object;", int(2))
-                    .cast(rowsGroupFactory.owner)
-                val click = newInstance(
-                    clickFactory.owner, clickFactory.proto,
-                    newInstance(actionFactory.owner, actionFactory.proto, int(35), bool(false)),
-                    newInstance(navFactory.owner, navFactory.proto, string("spotify:internal:licenses"), nullObject),
-                )
-                val row = newInstance(
-                    rowFactory.owner, rowFactory.proto,
-                    string("reseamPatches"),
-                    resIntArg(rowFactory, 1, titleId),
-                    nullObject,
-                    resIntArg(rowFactory, 3, summaryId),
-                    nullObject, nullObject, nullObject, nullObject,
-                    staticField(rowIconField),
-                    nullObject,
-                    click,
-                    nullObject,
-                    int(22506),
-                )
-                val rows = group.field(rowsListField)
-                val copy = newInstance("Ljava/util/ArrayList;", "(Ljava/util/Collection;)V", rows.cast("Ljava/util/Collection;"))
-                copy.callVirtual("Ljava/util/ArrayList;", "add", "(Ljava/lang/Object;)Z", row)
-                group.set(rowsListField, copy)
-            }
-        }
+        // Row injection disabled; access via Licenses tap only
     }
 }

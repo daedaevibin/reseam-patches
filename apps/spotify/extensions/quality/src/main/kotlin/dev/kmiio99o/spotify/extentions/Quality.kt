@@ -17,6 +17,9 @@ private fun tier(): Int = when (SpotifySettings.qualityTier.value) {
 }
 
 @Export
+fun initQuality(): Unit = Unit // init hook
+
+@Export
 fun forcedQuality(): Any = tier()
 
 @Export
